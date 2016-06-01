@@ -1,0 +1,2 @@
+# osuAutoBot
+osu! auto bot
