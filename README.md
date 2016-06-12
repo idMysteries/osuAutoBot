@@ -1,7 +1,7 @@
 # osuAutoBot
 https://github.com/AndreySeVeN
 
-    osu!AutoBot. Move cursor in game
+    osu!AutoBot
     Copyright (C) 2016  Andrey Tokarev
 
     This program is free software: you can redistribute it and/or modify
