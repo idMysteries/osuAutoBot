@@ -33,7 +33,7 @@ float delta = 1.0f;
 float TWO_PI = static_cast<float>(M_PI * 2.0f);
 float HALF_PI = static_cast<float>(M_PI / 2.0f);
 
-long binomialCoefficient(int n, int k) {
+inline long binomialCoefficient(const int& n, int k) {
 	if (k < 0 || k > n)
 		return 0;
 	if (k == 0 || k == n)
@@ -45,11 +45,11 @@ long binomialCoefficient(int n, int k) {
 	return c;
 }
 
-float bernstein(int i, int n, float t) {
+inline float bernstein(const int& i, const int& n, const float& t) {
 	return binomialCoefficient(n, i) * powf(t, i) * powf(1.0f - t, n - i);
 }
 
-inline vec2f bezier(vector<vec2f>& pts, float t) {
+inline vec2f bezier(const vector<vec2f>& pts, const float& t) {
 	vec2f c;
 	int n = pts.size() - 1;
 	for (int i = 0; i <= n; i++) {
@@ -130,7 +130,8 @@ public:
 
 	vec2f getEndPos()
 	{
-		return getPointByT(1.0f);
+		float t = 1.0f;
+		return getPointByT(t);
 	}
 
 	void setStack(int stack)
@@ -148,9 +149,9 @@ public:
 		return startPosition;
 	}
 
-	vec2f getPointByT(float t){
+	vec2f getPointByT(float& t){
 		auto floor = floorf(t);
-		t = int(floor) % 2 == 0 ? t - floor : floor + 1.0f - t;
+		t = static_cast<int>(floor) % 2 == 0 ? t - floor : floor + 1.0f - t;
 		if (sliderType == 'P'){
 			auto ang = lerp(startAng, endAng, t);
 			return { PCenter.x + PRadius * cosf(ang), PCenter.y + PRadius * sinf(ang) };
@@ -209,13 +210,13 @@ public:
 
 			if (BPM < 0.0f) {auto newMulti = BPM / -100.0f; BPM = beatLengthBase * newMulti;}
 
-			sliderTime = int(BPM * (PixelLength / MapSliderMultiplier) / 100.0f);
+			sliderTime = static_cast<int>(BPM * (PixelLength / MapSliderMultiplier) / 100.0f);
 			endTime = sliderTime * RepeatCount + startTime;
 
 			auto SliderTokens = split_string(tokens.at(5), "|");
 
 			sliderPoints.push_back(startPosition);
-			for (auto i = 1; i < int(SliderTokens.size()); i++) {
+			for (auto i = 1; i < static_cast<int>(SliderTokens.size()); i++) {
 				auto p = split_string(SliderTokens.at(i), ":");
 				auto point = vec2f(stof(p.at(0)), stof(p.at(1)));
 				sliderPoints.push_back(point);
@@ -264,16 +265,17 @@ public:
 				}
 				vec2f start = sliderPoints[0];
 				vec2f mid = sliderPoints[1];
+				auto midcpy = mid;
 				vec2f end = sliderPoints[2];
 
 				vec2f mida = start.midPoint(mid);
 				vec2f midb = end.midPoint(mid);
-				vec2f nora = mid.cpy().sub(start).nor();
-				vec2f norb = mid.cpy().sub(end).nor();
+				vec2f nora = midcpy.sub(start).nor();
+				vec2f norb = midcpy.sub(end).nor();
 				vec2f circleCenter = intersect(mida, nora, midb, norb);
 
 				vec2f startAngPoint = start.cpy().sub(circleCenter);
-				vec2f midAngPoint = mid.cpy().sub(circleCenter);
+				vec2f midAngPoint = midcpy.sub(circleCenter);
 				vec2f endAngPoint = end.cpy().sub(circleCenter);
 
 				startAng = atan2(startAngPoint.y, startAngPoint.x);

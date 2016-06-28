@@ -59,16 +59,16 @@ DWORD GetMemorySize(HANDLE hProc)
 	return 0;
 }
 
-DWORD FindPattern(HANDLE ProcessHandle, BYTE Signature[], unsigned const int ByteCount) {
+DWORD FindPattern(HANDLE ProcessHandle, const byte Signature[], unsigned const int ByteCount) {
 	const static unsigned int Mult = 4096;
-	const static unsigned int StartAdress = int(GetBaseAddress(OsuProcessHandle));
+	const static unsigned int StartAdress = reinterpret_cast<int>(GetBaseAddress(OsuProcessHandle));
 	const static unsigned int EndAdress = StartAdress + GetMemorySize(OsuProcessHandle);
 	static bool Hit;
 
-	BYTE ByteInMemory[Mult];
+	byte ByteInMemory[Mult];
 
 	for (auto i = StartAdress; i < EndAdress; i += Mult - ByteCount) {
-		ReadProcessMemory(ProcessHandle, LPCVOID(i), &ByteInMemory, Mult, nullptr);
+		ReadProcessMemory(ProcessHandle, reinterpret_cast<LPCVOID>(i), &ByteInMemory, Mult, nullptr);
 		for (unsigned int a = 0; a < Mult; a++) {
 			Hit = true;
 
@@ -112,7 +112,7 @@ float GetDelta(float angle)
 	return (1.0f - sqrt2) * si;
 }
 
-void SpinerCircleMove(HitObject* spiner)
+void SpinerCircleMove(const HitObject* spiner)
 {
 	vec2f center{ 
 		spiner->getStartPosition().x * XMultiplier + OsuWindowX, 
@@ -124,8 +124,8 @@ void SpinerCircleMove(HitObject* spiner)
 	{
 		//angle = normalize_angle(angle);
 		float r = R * (sqrt2 + GetDelta(angle));
-		int x = int(r * cos(angle) + center.x);
-		int y = int(r * sin(angle) + center.y);
+		int x = static_cast<int>(r * cos(angle) + center.x);
+		int y = static_cast<int>(r * sin(angle) + center.y);
 		SetCursorPos(x, y);
 		angle -= 0.056f;
 		this_thread::sleep_for(chrono::milliseconds(1));
@@ -139,8 +139,8 @@ void SpiralMove(HitObject* spiner)
 	float R = 0.0f;
 	while (SongTime <= spiner->getEndTime() && songStarted)
 	{
-		int x = int(R * cos(angle) + center.x);
-		int y = int(R * sin(angle) + center.y);
+		int x = static_cast<int>(R * cos(angle) + center.x);
+		int y = static_cast<int>(R * sin(angle) + center.y);
 		SetCursorPos(x, y);
 		angle -= 0.056f;
 		R += 0.2f;
@@ -153,7 +153,6 @@ vec2f CirclePoint(vec2f center, float R, float angle) {
 	return vec2f(x, y) + center;
 }
 #include <limits>
-#include <random>
 void SliderMove(HitObject* slider)
 {
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
@@ -161,7 +160,7 @@ void SliderMove(HitObject* slider)
 	{
 		auto t = static_cast<float>(SongTime - slider->getStartTime()) / static_cast<float>(slider->getSliderTime());
 		auto pos = slider->getPointByT(t);
-		SetCursorPos(int((pos.x - slider->getStack() * StackOffset)* XMultiplier) + OsuWindowX, int((pos.y - slider->getStack() * StackOffset) * YMultiplier) + OsuWindowY);
+		SetCursorPos(static_cast<int>((pos.x - slider->getStack() * StackOffset)* XMultiplier) + OsuWindowX, static_cast<int>((pos.y - slider->getStack() * StackOffset) * YMultiplier) + OsuWindowY);
 		this_thread::sleep_for(chrono::milliseconds(1));
 	}
 }
@@ -184,7 +183,7 @@ float vectorAngle(vec2f a, vec2f b) {
 
 float ang = float(M_PI_2);
 
-void DancingMoveTo(HitObject* object)
+void DancingMoveTo(const HitObject* object)
 {
 	POINT p;
 	GetCursorPos(&p);
@@ -196,21 +195,18 @@ void DancingMoveTo(HitObject* object)
 	auto dt = static_cast<float>(object->getStartTime() - SongTime);
 	while (SongTime < object->getStartTime() && songStarted)
 	{
-		auto t = (dt - float(object->getStartTime() - SongTime)) / dt;
-		vec2f B = bezier(vector<vec2f>{
+		auto t = (dt - static_cast<float>(object->getStartTime() - SongTime)) / dt;
+		auto B = bezier(vector<vec2f>{
 			p0, p2, /*p3,*/ p1
 		}, t);
 		SetCursorPos(static_cast<int>(B.x), static_cast<int>(B.y));
 		this_thread::sleep_for(chrono::milliseconds(1));
 	}
-	SetCursorPos(int(p1.x), int(p1.y));
+	SetCursorPos(static_cast<int>(p1.x), static_cast<int>(p1.y));
 }
 
-void LinearMoveTo(HitObject* object)
+void LinearMoveTo(const HitObject* object)
 {
-	//default_random_engine eng((random_device()()));
-	//uniform_real_distribution<float> Arandom(0.0f, float(M_PI));
-	//uniform_real_distribution<float> Rrandom(0.0f, StackOffset * 10.0f * XMultiplier * 0.95f);
 	POINT p;
 	GetCursorPos(&p);
 	auto p0 = vec2f(static_cast<float>(p.x), static_cast<float>(p.y));
@@ -218,12 +214,12 @@ void LinearMoveTo(HitObject* object)
 	auto dt = static_cast<float>(object->getStartTime() - SongTime);
 	while (SongTime < object->getStartTime() && songStarted)
 	{
-		auto t = (dt - float(object->getStartTime() - SongTime)) / dt;
-		vec2f B = p0 + t*(p1 - p0);
+		auto t = (dt - static_cast<float>(object->getStartTime() - SongTime)) / dt;
+		auto B = p0 + t*(p1 - p0);
 		SetCursorPos(static_cast<int>(B.x), static_cast<int>(B.y));
 		this_thread::sleep_for(chrono::milliseconds(1));
 	}
-	SetCursorPos(int(p1.x), int(p1.y));
+	SetCursorPos(static_cast<int>(p1.x), static_cast<int>(p1.y));
 }
 
 void AutoThread()
@@ -232,8 +228,6 @@ void AutoThread()
 	for (auto Hit : HitObjects)
 	{
 		DancingMoveTo(&Hit);
-		//BezierMoveTo(&Hit);
-		//keybd_event(0x67, 0, 0, 0);
 		if (Hit.itSpinner())
 		{
 			SpinerCircleMove(&Hit);
@@ -242,8 +236,6 @@ void AutoThread()
 		{
 			SliderMove(&Hit);
 		}
-		//this_thread::sleep_for(chrono::milliseconds(10));
-		//keybd_event(0x67, 0, KEYEVENTF_KEYUP, 0);
 		if (!songStarted)
 		{
 			return;
@@ -274,8 +266,8 @@ void gameCheckerThread()
 		}
 		XMultiplier = swidth / 640.0f;
 		YMultiplier = sheight / 480.0f;
-		int xOffset = static_cast<int>(x - 512.0f * XMultiplier) / 2;
-		int yOffset = static_cast<int>(y - 384.0f * YMultiplier) / 2;
+		auto xOffset = static_cast<int>(x - 512.0f * XMultiplier) / 2;
+		auto yOffset = static_cast<int>(y - 384.0f * YMultiplier) / 2;
 
 		OsuWindowX = p.x + xOffset;
 		OsuWindowY = p.y + yOffset;
@@ -329,11 +321,11 @@ void checkGame()
 {
 rescan:
 	cout << "Search \"osu!\" window" << endl;
-	OsuWindow = FindWindow(nullptr, TEXT("osu!"));
+	OsuWindow = FindWindowA(nullptr, TEXT("osu!"));
 	if (OsuWindow == nullptr) {
 		cout << "Please run osu!" << endl;
 		while (OsuWindow == nullptr) {
-			OsuWindow = FindWindow(nullptr, TEXT("osu!"));
+			OsuWindow = FindWindowA(nullptr, TEXT("osu!"));
 			Sleep(100);
 		}
 	}
@@ -351,7 +343,7 @@ rescan:
 	}
 	int timerr;
 	ReadProcessMemory(OsuProcessHandle, reinterpret_cast<LPCVOID>(ScanAdress), &timerr, 4, nullptr);
-	TimeAdress = LPVOID(timerr + 0xC);
+	TimeAdress = reinterpret_cast<LPVOID>(timerr + 0xC);
 	cout << "Timer address: " << TimeAdress << endl;
 	cout << "Start threads" << endl;
 	thread game(gameCheckerThread);
@@ -368,7 +360,7 @@ float mapDifficultyRange(float difficulty, float min, float mid, float max)
 		return mid - (mid - min)*(5.0f - difficulty) / 5.0f;
 	return mid;
 }
-float OD;
+float OverallDifficulty;
 void ParseSong(string path)
 {
 	ifstream t(path);
@@ -402,7 +394,7 @@ void ParseSong(string path)
 		else if (Difficulty)
 		{
 			if (str.find("OverallDifficulty:") != string::npos) {
-				OD = stof(str.substr(str.find(':') + 1));
+				OverallDifficulty = stof(str.substr(str.find(':') + 1));
 			}
 			else if (str.find("CircleSize") != string::npos)
 			{
@@ -451,7 +443,7 @@ void ParseSong(string path)
 		}
 	}
 	t.close();
-	float PreEmpt = mapDifficultyRange(OD, 1800.0f, 1200.0f, 450.0f);
+	float PreEmpt = mapDifficultyRange(OverallDifficulty, 1800.0f, 1200.0f, 450.0f);
 	StackOffset = (512.0f / 16.0f) * (1.0f - 0.7f * (CircleSize - 5.0f) / 5.0f) / 10.0f;
 	cout << StackOffset << endl;
 	//for (int i = HitObjects.size() - 1; i > 0; i--) {
@@ -540,7 +532,7 @@ void ParseSong(string path)
 
 				//HitObjectSpannable spanN = objectN as HitObjectSpannable;
 				float timeI = objectI->startTime - PreEmpt * StackLeniency;
-				float timeN = float(objectN->itSlider() ? objectN->endTime : objectN->startTime);
+				float timeN = static_cast<float>(objectN->itSlider() ? objectN->endTime : objectN->startTime);
 				if (timeI > timeN)
 					break;
 

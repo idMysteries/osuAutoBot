@@ -27,7 +27,7 @@ public:
 		y = ny;
 		return *this;
 	}
-	vec2f midPoint(vec2f o) const
+	vec2f midPoint(const vec2f& o) const
 	{
 		return vec2f((x + o.x) / 2.0f, (y + o.y) / 2.0f);
 	}

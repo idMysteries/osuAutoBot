@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include <vector>
 
-inline std::vector<std::string> split_string(const std::string &str, const std::string delim = " ", size_t pos = 0)
+inline std::vector<std::string> split_string(const std::string &str, const std::string &delim = " ", size_t pos = 0)
 {
 	std::vector<std::string> out;
 	if (pos >= str.size())
