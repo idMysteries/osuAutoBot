@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "Split.h" 
 #include "TimingPoint.h"
 #include "segment.h"
+#include <math.h>
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 using namespace std;
@@ -83,6 +84,32 @@ inline vec2f intersect(vec2f a, vec2f ta, vec2f b, vec2f tb) {
 		cout << "Vectors are parallel." << endl;
 	auto u = ((b.y - a.y) * ta.x + (a.x - b.x) * ta.y) / des;
 	return b.cpy().add(tb.x * u, tb.y * u);
+}
+
+float CircleTAt(vec2f pt, vec2f centre)
+{
+	return atan2f(pt.y - centre.y, pt.x - centre.x);
+}
+
+void CircleThroughPoints(vec2f A, vec2f B, vec2f C, vec2f& centre,  float& radius, float& t_initial, float& t_final)
+{
+	float D = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+	float AMagSq = A.LengthSquared();
+	float BMagSq = B.LengthSquared();
+	float CMagSq = C.LengthSquared();
+	centre = { (AMagSq * (B.y - C.y) + BMagSq * (C.y - A.y) + CMagSq * (A.y - B.y)) / D,
+		(AMagSq * (C.x - B.x) + BMagSq * (A.x - C.x) + CMagSq * (B.x - A.x)) / D };
+	radius = (centre - A).len();
+
+	t_initial = CircleTAt(A, centre);
+	float t_mid = CircleTAt(B, centre);
+	t_final = CircleTAt(C, centre);
+	while (t_mid < t_initial) t_mid += 2.0f * M_PI;
+	while (t_final < t_initial) t_final += 2.0f * M_PI;
+	if (t_mid > t_final)
+	{
+		t_final -= 2.0f * M_PI;
+	}
 }
 
 class HitObject
@@ -153,12 +180,24 @@ public:
 		auto floor = floorf(t);
 		t = static_cast<int>(floor) % 2 == 0 ? t - floor : floor + 1.0f - t;
 		if (sliderType == 'P'){
-			auto ang = lerp(startAng, endAng, t);
-			return { PCenter.x + PRadius * cosf(ang), PCenter.y + PRadius * sinf(ang) };
+			auto dist = PixelLength * t;
+			auto currDist = 0.0f;
+			auto oldpoint = startPosition;
+			auto ct = 0.0f;
+			while (currDist < dist)
+			{
+				auto ang = endAng * ct + startAng * (1.f - ct);
+				vec2f p{ PCenter.x + PRadius * cosf(ang), PCenter.y + PRadius * sinf(ang) };
+				currDist += distance(p, oldpoint);
+				if (currDist > dist) { return oldpoint; }
+				oldpoint = p;
+				ct += 1.0f / (PixelLength * 0.5f);
+			}
+			return oldpoint;
 		}
 		auto dist = PixelLength * t;
 		auto currDist = 0.0f;
-		auto oldpoint = sliderSegments[0].points[0];
+		auto oldpoint = startPosition;
 		for (int i = 0; i < sliderSegments.size(); i++)
 		{
 			auto seg = sliderSegments[i];
@@ -263,42 +302,11 @@ public:
 					sliderType = 'B';
 					goto bezier;
 				}
-				vec2f start = sliderPoints[0];
-				vec2f mid = sliderPoints[1];
-				auto midcpy = mid;
-				vec2f end = sliderPoints[2];
+				vec2f a = sliderPoints[0];
+				vec2f b = sliderPoints[1];
+				vec2f c = sliderPoints[2];
 
-				vec2f mida = start.midPoint(mid);
-				vec2f midb = end.midPoint(mid);
-				vec2f nora = midcpy.sub(start).nor();
-				vec2f norb = midcpy.sub(end).nor();
-				vec2f circleCenter = intersect(mida, nora, midb, norb);
-
-				vec2f startAngPoint = start.cpy().sub(circleCenter);
-				vec2f midAngPoint = midcpy.sub(circleCenter);
-				vec2f endAngPoint = end.cpy().sub(circleCenter);
-
-				startAng = atan2(startAngPoint.y, startAngPoint.x);
-				float midAng = atan2(midAngPoint.y, midAngPoint.x);
-				endAng = atan2(endAngPoint.y, endAngPoint.x);
-
-				float radius = startAngPoint.len();
-				if (!isIn(startAng, midAng, endAng)) {
-					if (abs(startAng + TWO_PI - endAng) < TWO_PI && isIn(startAng + TWO_PI, midAng, endAng))
-						startAng += TWO_PI;
-					else if (abs(startAng - (endAng + TWO_PI)) < TWO_PI && isIn(startAng, midAng, endAng + TWO_PI))
-						endAng += TWO_PI;
-					else if (abs(startAng - TWO_PI - endAng) < TWO_PI && isIn(startAng - TWO_PI, midAng, endAng))
-						startAng -= TWO_PI;
-					else if (abs(startAng - (endAng - TWO_PI)) < TWO_PI && isIn(startAng, midAng, endAng - TWO_PI))
-						endAng -= TWO_PI;
-					else
-						cout << "Angle error: " << startAng << " " << midAng << " " << endAng << endl;
-				}
-				float arcAng = PixelLength / radius;
-				endAng = endAng > startAng ? startAng + arcAng : startAng - arcAng;
-				PCenter = circleCenter;
-				PRadius = radius;
+				CircleThroughPoints(a, b, c, PCenter, PRadius, startAng, endAng);
 			}
 			else {
 				sliderType = 'B';
