@@ -46,6 +46,8 @@ public:
 	}
 	float len() const
 	{ return sqrtf(x * x + y * y); }
+	float LengthSquared() const
+	{ return x*x + y*y;	}
 
 	vec2f operator+=(const vec2f& alt) {
 		x += alt.x;
