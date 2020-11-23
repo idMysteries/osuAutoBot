@@ -1,2 +1,2 @@
 # osuAutoBot
-https://github.com/CoderOffka
+https://github.com/idMysteries
